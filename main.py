@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware  # ✅ This is required
 # anthropic 
 from models import PromptRequest, ClaudeResponse
 from anthropic_client import ask_claude
