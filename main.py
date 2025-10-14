@@ -18,7 +18,12 @@ from matplotlib_service import generate_line_chart, generate_bar_chart, generate
 # seaborn
 from seaborn_service import create_histogram, create_scatterplot, create_boxplot
 
+# llama
+from fastapi import FastAPI, Request
+from llama_service import LlamaService
 
+
+# common code
 app = FastAPI()
 
 @app.get("/")
@@ -199,3 +204,22 @@ async def scatter_chart(request: ScatterRequest):
 @app.post("/seaborn-boxplot/")
 async def box_chart(request: BoxPlotRequest):
     return create_boxplot(request.data)
+
+
+# LlamaIndex service
+llama_service = LlamaService(data_path="data")
+
+@app.get("/")
+def root():
+    return {"message": "LlamaIndex + FastAPI + PDF ready 🚀"}
+
+@app.post("/query")
+async def query(request: Request):
+    data = await request.json()
+    user_query = data.get("query")
+    
+    if not user_query:
+        return {"error": "No query provided."}
+
+    answer = llama_service.query(user_query)
+    return {"response": answer}
