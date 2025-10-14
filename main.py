@@ -29,17 +29,6 @@ from llama_service import LlamaService
 app = FastAPI()
 
 
- # Render provides this env var
-@app.get("/")
-def read_root():
-    return {"message": "Hello from FastAPI on Render!"}
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000)) 
-    uvicorn.run(app, host="0.0.0.0", port=port)
-
-
-
 # ✅ Allowed origins (Angular local + deployed frontend)
 origins = [
     "http://localhost:4200",
@@ -54,6 +43,18 @@ app.add_middleware(
     allow_methods=["GET", "POST"],      # allowed HTTP methods
     allow_headers=["Content-Type", "Authorization"],  # allowed headers
 )
+
+
+ # Render provides this env var
+@app.get("/")
+def read_root():
+    return {"message": "Hello from FastAPI on Render!"}
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000)) 
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
+    
 
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: str | None = None):
