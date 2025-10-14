@@ -26,6 +26,21 @@ from llama_service import LlamaService
 # common code
 app = FastAPI()
 
+# ✅ Allowed origins (Angular local + deployed frontend)
+origins = [
+    "http://localhost:4200",
+    "https://melodious-phoenix-1af0bc.netlify.app",
+]
+
+# ✅ Add the CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,              # specific frontend URLs
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],      # allowed HTTP methods
+    allow_headers=["Content-Type", "Authorization"],  # allowed headers
+)
+
 @app.get("/")
 def read_root():
     return {"message": "Hello, FastAPI from VS Code!"}
