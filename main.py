@@ -55,10 +55,6 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],  # allowed headers
 )
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello, FastAPI from VS Code!"}
-
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: str | None = None):
     return {"item_id": item_id, "query": q}
@@ -238,7 +234,7 @@ async def box_chart(request: BoxPlotRequest):
 # LlamaIndex service
 llama_service = LlamaService(data_path="data")
 
-@app.get("/")
+@app.get("/llama_service/")
 def root():
     return {"message": "LlamaIndex + FastAPI + PDF ready 🚀"}
 
