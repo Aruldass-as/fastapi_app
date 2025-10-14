@@ -1,3 +1,15 @@
+# Project structure
+# fastapi_app/
+# ├── main.py
+# ├── llama_service.py
+# └── data/
+#     └── sample.pdf
+
+
+# install
+# pip install llama-index pypdf fastapi uvicorn openai
+
+
 # llama_service.py
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 from llama_index.llms.openai import OpenAI
@@ -19,3 +31,9 @@ class LlamaService:
         """Query your indexed documents"""
         response = self.query_engine.query(question)
         return str(response)
+
+
+# test it
+# curl -X POST "http://127.0.0.1:8000/query" \
+#   -H "Content-Type: application/json" \
+#   -d '{"query": "Summarize the PDF content"}'
