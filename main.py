@@ -1,4 +1,6 @@
-from fastapi import FastAPI, HTTPException
+import os
+import uvicorn
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware  # ✅ This is required
 # anthropic 
 from models import PromptRequest, ClaudeResponse
@@ -20,12 +22,23 @@ from matplotlib_service import generate_line_chart, generate_bar_chart, generate
 from seaborn_service import create_histogram, create_scatterplot, create_boxplot
 
 # llama
-from fastapi import FastAPI, Request
 from llama_service import LlamaService
 
 
 # common code
 app = FastAPI()
+
+
+ # Render provides this env var
+@app.get("/")
+def read_root():
+    return {"message": "Hello from FastAPI on Render!"}
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000)) 
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
+
 
 # ✅ Allowed origins (Angular local + deployed frontend)
 origins = [
