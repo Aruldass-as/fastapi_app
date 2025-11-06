@@ -10,10 +10,10 @@ from pydantic import BaseModel
 from openai_service import generate_text
 
 # numpy
-from numpy_service import array_sum, array_mean, dot_product
+# from numpy_service import array_sum, array_mean, dot_product
 
 #pandas
-from pandas_service import create_dataframe, calculate_column_mean, filter_by_condition
+# from pandas_service import create_dataframe, calculate_column_mean, filter_by_condition
 
 # matplotlib 
 from matplotlib_service import generate_line_chart, generate_bar_chart, generate_pie_chart
@@ -109,75 +109,75 @@ async def generate_endpoint(request: PromptRequest):
 
 
 # numpy
-class NumbersRequest(BaseModel):
-    numbers: list[float]
+# class NumbersRequest(BaseModel):
+#     numbers: list[float]
 
-class DotRequest(BaseModel):
-    a: list[float]
-    b: list[float]
+# class DotRequest(BaseModel):
+#     a: list[float]
+#     b: list[float]
 
-@app.post("/numpy-sum/")
-async def calculate_sum(request: NumbersRequest):
-    try:
-        result = array_sum(request.numbers)
-        return {"sum": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/numpy-sum/")
+# async def calculate_sum(request: NumbersRequest):
+#     try:
+#         result = array_sum(request.numbers)
+#         return {"sum": result}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/numpy-mean/")
-async def calculate_mean(request: NumbersRequest):
-    try:
-        result = array_mean(request.numbers)
-        return {"mean": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/numpy-mean/")
+# async def calculate_mean(request: NumbersRequest):
+#     try:
+#         result = array_mean(request.numbers)
+#         return {"mean": result}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/numpy-dot/")
-async def calculate_dot(request: DotRequest):
-    try:
-        result = dot_product(request.a, request.b)
-        return {"dot_product": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/numpy-dot/")
+# async def calculate_dot(request: DotRequest):
+#     try:
+#         result = dot_product(request.a, request.b)
+#         return {"dot_product": result}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
 
 #pandas
-class DataRequest(BaseModel):
-    data: list[dict]
+# class DataRequest(BaseModel):
+#     data: list[dict]
 
-class ColumnRequest(BaseModel):
-    data: list[dict]
-    column: str
+# class ColumnRequest(BaseModel):
+#     data: list[dict]
+#     column: str
 
-class FilterRequest(BaseModel):
-    data: list[dict]
-    column: str
-    min_value: float
+# class FilterRequest(BaseModel):
+#     data: list[dict]
+#     column: str
+#     min_value: float
 
-@app.post("/pandas-dataframe/")
-async def get_dataframe(request: DataRequest):
-    try:
-        df = create_dataframe(request.data)
-        return {"dataframe": df.to_dict(orient="records")}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/pandas-dataframe/")
+# async def get_dataframe(request: DataRequest):
+#     try:
+#         df = create_dataframe(request.data)
+#         return {"dataframe": df.to_dict(orient="records")}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/pandas-mean/")
-async def get_mean(request: ColumnRequest):
-    try:
-        mean_value = calculate_column_mean(request.data, request.column)
-        return {"mean": mean_value}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/pandas-mean/")
+# async def get_mean(request: ColumnRequest):
+#     try:
+#         mean_value = calculate_column_mean(request.data, request.column)
+#         return {"mean": mean_value}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/pandas-filter/")
-async def filter_data(request: FilterRequest):
-    try:
-        filtered = filter_by_condition(request.data, request.column, request.min_value)
-        return {"filtered_data": filtered}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/pandas-filter/")
+# async def filter_data(request: FilterRequest):
+#     try:
+#         filtered = filter_by_condition(request.data, request.column, request.min_value)
+#         return {"filtered_data": filtered}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
     
 
 
