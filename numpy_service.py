@@ -11,23 +11,23 @@
 
 
 # numpy_service.py
-import numpy as np
+# import numpy as np
 
-def array_sum(numbers: list) -> float:
-    """Return the sum of numbers."""
-    arr = np.array(numbers)
-    return np.sum(arr)
+# def array_sum(numbers: list) -> float:
+#     """Return the sum of numbers."""
+#     arr = np.array(numbers)
+#     return np.sum(arr)
 
-def array_mean(numbers: list) -> float:
-    """Return the mean of numbers."""
-    arr = np.array(numbers)
-    return np.mean(arr)
+# def array_mean(numbers: list) -> float:
+#     """Return the mean of numbers."""
+#     arr = np.array(numbers)
+#     return np.mean(arr)
 
-def dot_product(a: list, b: list) -> float:
-    """Return the dot product of two lists."""
-    arr1 = np.array(a)
-    arr2 = np.array(b)
-    return np.dot(arr1, arr2)
+# def dot_product(a: list, b: list) -> float:
+#     """Return the dot product of two lists."""
+#     arr1 = np.array(a)
+#     arr2 = np.array(b)
+#     return np.dot(arr1, arr2)
 
 
 
