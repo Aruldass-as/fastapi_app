@@ -9,33 +9,33 @@
 
 # pandas_service.py
 
-import pandas as pd
+# import pandas as pd
 
-def create_dataframe(data: list[dict]) -> pd.DataFrame:
-    """
-    Convert a list of dictionaries into a Pandas DataFrame.
-    """
-    df = pd.DataFrame(data)
-    return df
+# def create_dataframe(data: list[dict]) -> pd.DataFrame:
+#     """
+#     Convert a list of dictionaries into a Pandas DataFrame.
+#     """
+#     df = pd.DataFrame(data)
+#     return df
 
-def calculate_column_mean(data: list[dict], column: str) -> float:
-    """
-    Calculate the mean of a specified numeric column.
-    """
-    df = pd.DataFrame(data)
-    if column not in df.columns:
-        raise ValueError(f"Column '{column}' not found.")
-    return df[column].mean()
+# def calculate_column_mean(data: list[dict], column: str) -> float:
+#     """
+#     Calculate the mean of a specified numeric column.
+#     """
+#     df = pd.DataFrame(data)
+#     if column not in df.columns:
+#         raise ValueError(f"Column '{column}' not found.")
+#     return df[column].mean()
 
-def filter_by_condition(data: list[dict], column: str, min_value: float) -> list[dict]:
-    """
-    Filter rows where column >= min_value.
-    """
-    df = pd.DataFrame(data)
-    if column not in df.columns:
-        raise ValueError(f"Column '{column}' not found.")
-    filtered_df = df[df[column] >= min_value]
-    return filtered_df.to_dict(orient="records")
+# def filter_by_condition(data: list[dict], column: str, min_value: float) -> list[dict]:
+#     """
+#     Filter rows where column >= min_value.
+#     """
+#     df = pd.DataFrame(data)
+#     if column not in df.columns:
+#         raise ValueError(f"Column '{column}' not found.")
+#     filtered_df = df[df[column] >= min_value]
+#     return filtered_df.to_dict(orient="records")
 
 # create_dataframe
 # Question:
