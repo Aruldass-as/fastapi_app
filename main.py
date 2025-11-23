@@ -25,6 +25,10 @@ from seaborn_service import create_histogram, create_scatterplot, create_boxplot
 from llama_service import LlamaService
 
 
+# fitness api
+from schemas import FitnessRequest, FitnessResponse
+from ai_client import generate_fitness_plan
+
 # common code
 app = FastAPI()
 
@@ -249,3 +253,13 @@ async def query(request: Request):
 
     answer = llama_service.query(user_query)
     return {"response": answer}
+
+
+# fitness
+@app.post("/fitness", response_model=FitnessResponse)
+async def get_fitness_plan(request: FitnessRequest):
+    try:
+        result = generate_fitness_plan(request.dict())
+        return FitnessResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
