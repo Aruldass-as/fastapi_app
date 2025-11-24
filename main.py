@@ -1,6 +1,6 @@
 import os
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware  # ✅ This is required
 # anthropic 
 from models import PromptRequest, ClaudeResponse
@@ -28,6 +28,11 @@ from llama_service import LlamaService
 # fitness api
 from schemas import FitnessRequest, FitnessResponse
 from ai_client import generate_fitness_plan
+
+# Smart Research Assistant
+import shutil
+from services.document_processing import process_document
+from services.graph_service import generate_concept_graph
 
 # common code
 app = FastAPI()
@@ -263,3 +268,22 @@ async def get_fitness_plan(request: FitnessRequest):
         return FitnessResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+# Smart Research Assistant (Multimodal)
+# tech stack: Backend: FastAPI, Frontend: Angular, AI Models: OpenAI GPT-4, 
+#             Knowledge Graph: LangGraph, Orchestration/Logging: LangFuse / LangSmith
+#             Visualization: Agno or D3.js in Angular
+@app.post("/upload")
+async def upload_file(file: UploadFile):
+    temp_file_path = f"temp_{file.filename}"
+    with open(temp_file_path, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+
+    # Process document to get summary and graph
+    summary, graph = process_document(temp_file_path)  # <-- update this function to return both
+
+    return {
+        "summary": summary,
+        "graph": graph  # now your frontend will receive it
+    }
