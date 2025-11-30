@@ -34,6 +34,9 @@ import shutil
 from services.document_processing import process_document
 from services.graph_service import generate_concept_graph
 
+#web-scrape
+from web_scrape import scrape_multiple_urls
+
 # common code
 app = FastAPI()
 
@@ -287,3 +290,12 @@ async def upload_file(file: UploadFile):
         "summary": summary,
         "graph": graph  # now your frontend will receive it
     }
+
+
+# Web scrape
+class UrlListRequest(BaseModel):
+    urls: list[str]
+
+@app.post("/scrape-multiple")
+async def scrape_multiple(data: UrlListRequest):
+    return await scrape_multiple_urls(data.urls)
