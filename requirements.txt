@@ -12,7 +12,7 @@ seaborn==0.13.2
 python-multipart==0.0.20
 PyPDF2==3.0.1
 playwright==1.44.0
-sqlalchemy>=2.0
-greenlet==0.0.0
+# sqlalchemy>=2.0
+# greenlet==0.0.0
 # beautifulsoup4
 # lxml
