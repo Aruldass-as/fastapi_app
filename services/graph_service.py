@@ -17,7 +17,14 @@ def generate_concept_graph(summary: str):
     )
     # Expect JSON output like: {"nodes": [...], "edges": [...]}
     import json
+    import re
+    content = response.choices[0].message.content or ""
+    # Strip markdown code blocks if present
+    content = re.sub(r"```(?:json)?\s*", "", content).strip()
     try:
-        return json.loads(response.choices[0].message.content)
-    except:
+        result = json.loads(content)
+        if "nodes" in result and "edges" in result:
+            return result
+        return {"nodes": result.get("nodes", []), "edges": result.get("edges", [])}
+    except json.JSONDecodeError:
         return {"nodes": [], "edges": []}

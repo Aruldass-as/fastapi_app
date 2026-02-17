@@ -2,8 +2,8 @@ import os
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware  # ✅ This is required
-# anthropic 
-from models import PromptRequest, ClaudeResponse
+# anthropic
+from models import PromptRequest, ClaudeRequest, ClaudeResponse
 from anthropic_client import ask_claude
 # openai
 from pydantic import BaseModel
@@ -14,12 +14,6 @@ from openai_service import generate_text
 
 #pandas
 # from pandas_service import create_dataframe, calculate_column_mean, filter_by_condition
-
-# matplotlib 
-from matplotlib_service import generate_line_chart, generate_bar_chart, generate_pie_chart
-
-# seaborn
-from seaborn_service import create_histogram, create_scatterplot, create_boxplot
 
 # llama
 from llama_service import LlamaService
@@ -64,7 +58,7 @@ def read_root():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000)) 
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="127.0.0.1", port=port)
 
     
 
@@ -95,21 +89,23 @@ def greet_user(name: str, greeting: str = "Hello"):
 
 
 
-# anthropic function
+# anthropic function (accepts both prompt and message for frontend compatibility)
 @app.post("/claude", response_model=ClaudeResponse)
-async def ask_claude_api(request: PromptRequest):
+async def ask_claude_api(request: ClaudeRequest):
     try:
-        result = ask_claude(request.prompt)
+        text = request.get_text()
+        if not text:
+            raise HTTPException(status_code=400, detail="Either 'prompt' or 'message' is required")
+        result = ask_claude(text)
         return ClaudeResponse(response=result)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
 
 
-# openai function
-class PromptRequest(BaseModel):
-    prompt: str
-
+# openai function (uses PromptRequest from models)
 @app.post("/openai/")
 async def generate_endpoint(request: PromptRequest):
     response = generate_text(request.prompt)
@@ -193,57 +189,6 @@ async def generate_endpoint(request: PromptRequest):
     
 
 
-# matplotlib 
-class LineChartRequest(BaseModel):
-    x_values: list[float]
-    y_values: list[float]
-
-class BarChartRequest(BaseModel):
-    categories: list[str]
-    values: list[float]
-
-class PieChartRequest(BaseModel):
-    labels: list[str]
-    sizes: list[float]
-
-@app.post("/matplotlib-line-chart/")
-async def line_chart(request: LineChartRequest):
-    return generate_line_chart(request.x_values, request.y_values)
-
-@app.post("/matplotlib-bar-chart/")
-async def bar_chart(request: BarChartRequest):
-    return generate_bar_chart(request.categories, request.values)
-
-@app.post("/matplotlib-pie-chart/")
-async def pie_chart(request: PieChartRequest):
-    return generate_pie_chart(request.labels, request.sizes)
-
-
-# seaborn
-class HistogramRequest(BaseModel):
-    data: list[float]
-    bins: int = 10
-
-class ScatterRequest(BaseModel):
-    x: list[float]
-    y: list[float]
-
-class BoxPlotRequest(BaseModel):
-    data: list[float]
-
-@app.post("/seaborn-histogram/")
-async def histogram_chart(request: HistogramRequest):
-    return create_histogram(request.data, request.bins)
-
-@app.post("/seaborn-scatter/")
-async def scatter_chart(request: ScatterRequest):
-    return create_scatterplot(request.x, request.y)
-
-@app.post("/seaborn-boxplot/")
-async def box_chart(request: BoxPlotRequest):
-    return create_boxplot(request.data)
-
-
 # LlamaIndex service
 llama_service = LlamaService(data_path="data")
 
@@ -280,16 +225,21 @@ async def get_fitness_plan(request: FitnessRequest):
 @app.post("/upload")
 async def upload_file(file: UploadFile):
     temp_file_path = f"temp_{file.filename}"
-    with open(temp_file_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    try:
+        with open(temp_file_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
 
-    # Process document to get summary and graph
-    summary, graph = process_document(temp_file_path)  # <-- update this function to return both
+        # Process document to get summary and graph
+        summary, graph = process_document(temp_file_path)
 
-    return {
-        "summary": summary,
-        "graph": graph  # now your frontend will receive it
-    }
+        return {
+            "summary": summary,
+            "graph": graph
+        }
+    finally:
+        # Clean up temp file
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
 
 
 # Web scrape

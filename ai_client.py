@@ -1,51 +1,44 @@
 import os
-import json
-from openai import OpenAI
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
-
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def generate_fitness_plan(request: dict) -> dict:
-    prompt = f"""
-You are an expert health & fitness coach.
 
-Generate a structured fitness plan.
+def generate_fitness_plan(data: dict) -> dict:
+    """Generate fitness plan using OpenAI based on user inputs."""
+    prompt = f"""Create a personalized fitness plan for:
+- Age: {data.get('age', 'N/A')}
+- Gender: {data.get('gender', 'N/A')}
+- Goal: {data.get('goal', 'N/A')}
+- Fitness level: {data.get('fitness_level', 'N/A')}
+- Preferences: {data.get('preferences', 'None')}
 
-Input:
-Age: {request['age']}
-Gender: {request['gender']}
-Goal: {request['goal']}
-Fitness Level: {request['fitness_level']}
-Preferences: {request.get('preferences', 'None')}
-
-Return ONLY valid JSON with this format:
-
-{{
-  "workout_plan": "string",
-  "diet_plan": "string",
-  "tips": "string"
-}}
+Return a JSON object with exactly these keys:
+- workout_plan: string (detailed workout plan)
+- diet_plan: string (diet recommendations)
+- tips: string (general fitness tips)
 """
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-    )
-
-    # Extract text from model
-    content = response.choices[0].message.content.strip()
-
-    # Convert text to JSON safely
     try:
-        data = json.loads(content)
-    except json.JSONDecodeError:
-        # Fix formatting if model responded with extra text
-        cleaned = content[
-            content.find("{") : content.rfind("}") + 1
-        ]
-        data = json.loads(cleaned)
-
-    return data
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a fitness coach. Return only valid JSON."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        import json
+        content = response.choices[0].message.content
+        result = json.loads(content) if isinstance(content, str) else content
+        return {
+            "workout_plan": result.get("workout_plan", ""),
+            "diet_plan": result.get("diet_plan", ""),
+            "tips": result.get("tips", "")
+        }
+    except Exception as e:
+        return {
+            "workout_plan": f"Error generating plan: {str(e)}",
+            "diet_plan": "",
+            "tips": ""
+        }
