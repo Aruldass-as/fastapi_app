@@ -7,7 +7,7 @@ from models import PromptRequest, ClaudeRequest, ClaudeResponse
 from anthropic_client import ask_claude
 # openai
 from pydantic import BaseModel
-from openai_service import generate_text
+from openai_service import generate_text, generate_image
 
 # numpy
 # from numpy_service import array_sum, array_mean, dot_product
@@ -114,6 +114,99 @@ async def generate_endpoint(request: PromptRequest):
         raise HTTPException(status_code=500, detail=response)
     
     return {"response": response}
+
+
+# Node.js API compatibility - chat (OpenAI)
+class ChatRequest(BaseModel):
+    message: str
+
+async def _handle_chat(request: ChatRequest):
+    if not request.message or not request.message.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+    response = generate_text(request.message)
+    if response.startswith("Error:"):
+        raise HTTPException(status_code=500, detail=response)
+    return {"reply": response}
+
+@app.post("/chat")
+async def chat_endpoint(request: ChatRequest):
+    return await _handle_chat(request)
+
+@app.post("/api/chat")  # Node.js path compatibility
+async def api_chat_endpoint(request: ChatRequest):
+    return await _handle_chat(request)
+
+
+# Node.js API compatibility - generate-image (OpenAI DALL-E)
+class ImageRequest(BaseModel):
+    prompt: str
+
+@app.post("/generate-image")
+async def generate_image_endpoint(request: ImageRequest):
+    result = generate_image(request.prompt)
+    if result.startswith("Error:"):
+        raise HTTPException(status_code=500, detail=result)
+    return {"url": result, "revised_prompt": request.prompt}
+
+
+# Node.js API compatibility - gemini
+class MessageRequest(BaseModel):
+    message: str
+
+@app.post("/gemini")
+async def gemini_endpoint(request: MessageRequest):
+    if not request.message or not request.message.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=501, detail="Add GOOGLE_API_KEY or GEMINI_API_KEY to fastapi_app/.env (get key from https://aistudio.google.com/apikey)")
+    # Use REST API directly (no SDK dependency, more reliable)
+    import json
+    import urllib.request
+    import urllib.error
+    payload = {
+        "contents": [{"parts": [{"text": request.message}]}],
+        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1024}
+    }
+    last_error = None
+    for model_id in ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-pro"]:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent?key={api_key}"
+            req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                data = json.loads(resp.read().decode())
+            text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+            if text:
+                return {"reply": text}
+        except urllib.error.HTTPError as e:
+            last_error = e.read().decode() if e.fp else str(e)
+            if "404" in str(e) or "not found" in last_error.lower():
+                continue
+            if e.code == 429 or "quota" in last_error.lower() or "RESOURCE_EXHAUSTED" in last_error:
+                raise HTTPException(status_code=429, detail="Gemini API quota exceeded. Wait a few minutes or check https://ai.google.dev/gemini-api/docs/rate-limits")
+            raise HTTPException(status_code=e.code, detail=last_error[:500])
+        except Exception as e:
+            last_error = str(e)
+            continue
+    raise HTTPException(status_code=500, detail=last_error or "Gemini API failed")
+
+
+# Node.js API compatibility - perplexity
+@app.post("/perplexity")
+async def perplexity_endpoint(request: MessageRequest):
+    api_key = os.getenv("PERPLEXITY_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=501, detail="Set PERPLEXITY_API_KEY in .env")
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key, base_url="https://api.perplexity.ai")
+        response = client.chat.completions.create(
+            model="llama-3.1-sonar-small-128k-online",
+            messages=[{"role": "user", "content": request.message}],
+        )
+        return {"reply": response.choices[0].message.content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # numpy
@@ -249,4 +342,63 @@ class UrlListRequest(BaseModel):
 @app.post("/scrape-multiple")
 async def scrape_multiple(data: UrlListRequest):
     return await scrape_multiple_urls(data.urls)
-# ..
+
+
+# Node.js API compatibility - voice-chatbot (OpenAI Whisper + GPT + TTS)
+@app.post("/voice-chatbot")
+async def voice_chatbot(audio: UploadFile = File(...)):
+    try:
+        import io
+        from openai import OpenAI
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # Read file into BytesIO (fixes SpooledTemporaryFile pointer issue with Whisper)
+        audio_bytes = await audio.read()
+        if not audio_bytes or len(audio_bytes) < 100:
+            raise HTTPException(status_code=400, detail="Audio too short or empty. Record for at least 1 second.")
+        audio_file = io.BytesIO(audio_bytes)
+        audio_file.name = audio.filename or "audio.webm"
+        # Speech to text
+        transcript = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
+        user_text = transcript.text
+        # Generate response
+        reply_text = generate_text(user_text)
+        if reply_text.startswith("Error:"):
+            raise HTTPException(status_code=500, detail=reply_text)
+        # Text to speech
+        tts = client.audio.speech.create(model="tts-1", voice="alloy", input=reply_text)
+        import base64
+        audio_base64 = base64.b64encode(tts.content).decode()
+        return {"userText": user_text, "botReply": reply_text, "audioBase64": audio_base64}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Node.js API compatibility - video generation (stub)
+class VideoRequest(BaseModel):
+    prompt: str
+
+@app.post("/generate-video")
+async def generate_video_endpoint(request: VideoRequest):
+    raise HTTPException(
+        status_code=501,
+        detail="Video generation requires OpenAI Sora or similar API. Not yet implemented in FastAPI."
+    )
+
+
+@app.get("/video-status/{id}")
+async def video_status(id: str):
+    raise HTTPException(
+        status_code=501,
+        detail="Video status endpoint not yet implemented in FastAPI."
+    )
+
+
+# RAG compatibility - accept both query and question
+@app.post("/api/query")
+async def rag_query(request: Request):
+    data = await request.json()
+    user_query = data.get("query") or data.get("question")
+    if not user_query:
+        return {"error": "No query or question provided.", "reply": ""}
+    answer = llama_service.query(user_query)
+    return {"response": answer, "reply": answer}
