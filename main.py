@@ -1,13 +1,16 @@
+import asyncio
+import json
 import os
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware  # ✅ This is required
+from fastapi.responses import StreamingResponse
 # anthropic
 from models import PromptRequest, ClaudeRequest, ClaudeResponse
 from anthropic_client import ask_claude
 # openai
 from pydantic import BaseModel
-from openai_service import generate_text, generate_image
+from openai_service import generate_text, generate_image, stream_chat
 
 # numpy
 # from numpy_service import array_sum, array_mean, dot_product
@@ -123,7 +126,7 @@ class ChatRequest(BaseModel):
 async def _handle_chat(request: ChatRequest):
     if not request.message or not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
-    response = generate_text(request.message)
+    response = await asyncio.to_thread(generate_text, request.message)
     if response.startswith("Error:"):
         raise HTTPException(status_code=500, detail=response)
     return {"reply": response}
@@ -137,16 +140,36 @@ async def api_chat_endpoint(request: ChatRequest):
     return await _handle_chat(request)
 
 
+# Streaming chat - tokens stream as they arrive for faster perceived response
+@app.post("/chat/stream")
+async def chat_stream_endpoint(request: ChatRequest):
+    if not request.message or not request.message.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    async def generate():
+        try:
+            async for chunk in stream_chat(request.message):
+                yield f"data: {json.dumps({'content': chunk})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
+
+
 # Node.js API compatibility - generate-image (OpenAI DALL-E)
 class ImageRequest(BaseModel):
     prompt: str
 
 @app.post("/generate-image")
 async def generate_image_endpoint(request: ImageRequest):
-    result = generate_image(request.prompt)
-    if result.startswith("Error:"):
-        raise HTTPException(status_code=500, detail=result)
-    return {"url": result, "revised_prompt": request.prompt}
+    result = await asyncio.to_thread(generate_image, request.prompt)
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+    return {**result, "revised_prompt": request.prompt}
 
 
 # Node.js API compatibility - gemini
